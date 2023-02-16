@@ -1,0 +1,5 @@
+<launch>
+<node pkg="cloud_to_image" type="cloud_to_image_node" name="cloud_to_image_node">
+  <param name="input_cloud_topic" value="/os1_cloud_node/points"/>
+</node>
+</launch>
