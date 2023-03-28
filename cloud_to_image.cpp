@@ -16,74 +16,61 @@
 ros::Publisher pub;
 cv::Mat image;
 
-//potentially issues with cv_bridge for image of this size
-int x_image_scale = 64;
-int y_image_scale = 64;
+// Image size
+int image_size = 10;
 
-float min_x = -10;
-float min_y = -10;
-float max_x = 10;
-float max_y = 10;
+// FOV and range
+float fov = 120;
+float range = 10;
 
 void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
   //creates new clean image every time
   image = cv::Mat();
-  image = cv::Mat::zeros(x_image_scale, y_image_scale, CV_8UC1);
+  image = cv::Mat::zeros(image_size, image_size, CV_8UC1);
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
   //changed to pointer
   pcl::fromROSMsg (*input, *cloud);
-  
 
-  float fov = 120;
   // Calculate the cosine of the FOV angle
   float cos_fov = cos(pcl::deg2rad(fov));
 
   // Create a unit z-vector pointing straight up
   Eigen::Vector3f z_vector(0, 0, 1);
 
-  // Create a filter for removing points outside the FOV
-  pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
   for (int i = 0; i < cloud->points.size(); i++) {
-
     // Get the xyz coordinates of the point
     Eigen::Vector3f point(cloud->points[i].x, cloud->points[i].y, cloud->points[i].z);
 
+    // Calculate the distance from the origin to the point
+    float distance = point.norm();
+
+    // Check if the point is within range
+    if (distance > range) {
+      continue;
+    }
+
     // Calculate the angle between the point and the z-axis using the dot product
-    float cos_angle = point.dot(z_vector) / point.norm();
+    float cos_angle = point.dot(z_vector) / distance;
 
     // Check if the point is within the FOV
     if (cos_angle >= cos_fov) {
-      inliers->indices.push_back(i);
+      // Map the x, y coordinates of the point to the image range
+      int row = ((point.x() + range) / (2 * range) * image_size);
+      int col = ((point.y() + range) / (2 * range) * image_size);
+
+      // Map the height of the point to a grayscale value
+      int value = (point.z() / range) * 255;
+
+      // Store the grayscale value in the image
+      row = std::max(0, std::min(image_size - 1, row));
+      col = std::max(0, std::min(image_size - 1, col));
+      image.at<unsigned char>(row, col) = std::max(0, std::min(255, value));
     }
   }
 
-  // Create a filter object and apply it to the input cloud
-  pcl::ExtractIndices<pcl::PointXYZ> extract;
-  extract.setInputCloud(cloud);
-  extract.setIndices(inliers);
-  extract.setNegative(false);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-  extract.filter(*filtered_cloud);
 
-  for (int i = 0; i < filtered_cloud->points.size(); i++) {
-    // Access the x, y, and z coordinates of the point
-    float x = filtered_cloud->points[i].x;
-    float y = filtered_cloud->points[i].y;
-    float z = filtered_cloud->points[i].z;
-
-    // Map the height of the point to a grayscale value
-    int value = (z / 10.0) * 255;
-    // Store the grayscale value in the image
-    int row = ((x - min_x) / (max_x-min_x) * x_image_scale); 
-    int col = ((y - min_y) / (max_y-min_y) * y_image_scale);
-
-    image.at<unsigned char>(row, col) = std::max(0, std::min(255, value));
-  }
-
-  // Resize the image to a specific size
-  cv::resize(image, image, cv::Size(64, 64));
 
   // Convert the image to a ROS message
   sensor_msgs::ImagePtr image_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
