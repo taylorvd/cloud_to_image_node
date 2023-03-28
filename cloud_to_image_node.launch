@@ -1,4 +1,8 @@
 <launch>
 <node type="rviz" name="rviz" pkg="rviz" />
-<node pkg="cloud_to_image_node" type="cloud_to_image_node" name="cloud_to_image_node"/>
+
+<node pkg="cloud_to_image_node" type="cloud_to_image_node" name="cloud_to_image_node" launch-prefix="xterm -e gdb --args"/>
+
+<node pkg="rosbag" type="play" name="player" output="screen" args="--clock -l -q /home/taylorlv/catkin_ws/src/cloud_to_image_node/mk_elektro_basement_thin_1_radar_points.bag"/>
+<node pkg="tf2_ros" type="static_transform_publisher" name="tf1" args="0.0 0.0 0.0 0.0 0 0 map ti_mmwave" />
 </launch>
