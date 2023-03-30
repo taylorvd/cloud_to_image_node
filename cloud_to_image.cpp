@@ -56,9 +56,9 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
     // Check if the point is within the FOV
     if (cos_angle >= cos_fov) {
-      // Map the x, y coordinates of the point to the image range
-      int row = ((point.x() + range) / (2 * range) * image_size);
-      int col = ((point.y() + range) / (2 * range) * image_size);
+      // Map the x, y coordinates of the point to the image
+      int row = ((point.x() + image_size) / (2 * image_size) * image_size);
+      int col = ((point.y() + image_size) / (2 * image_size) * image_size);
 
       // Map the height of the point to a grayscale value
       int value = (point.z() / range) * 255;
