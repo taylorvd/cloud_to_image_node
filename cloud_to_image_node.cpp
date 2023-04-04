@@ -18,7 +18,7 @@ ros::Publisher pub;
 cv::Mat image;
 
 // Image size
-int image_size = 100;
+int image_size = 64;
 
 // FOV and range
 float fov = 2.09; //rad, 120 deg;
@@ -49,7 +49,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
     // Check if the point is within range
     if (distance > range) {
-      //continue;
+      continue;
     }
 
     // Calculate the angle between the point and the z-axis using the dot product
@@ -58,28 +58,21 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     double elevation = std::atan2(point.z(), std::sqrt(point.x() * point.x() + point.y() * point.y()));
     //printf("azimuth %f elevation %f", azimuth, elevation);
     // Check if the point is within the FOV
-    if (true){ //std::abs(azimuth) <= fov && std::abs(elevation) <= fov){
-      // Map the x, y coordinates of the point to the image
-      //int row = ((point.x() + image_size) / (2 * image_size) * image_size);
-      //int col = ((point.y() + image_size) / (2 * image_size) * image_size);
-      // Calculate the row and column indices of the point in the depth image
-      //float image_center = (image_size - 1.0) / 2.0;
-      //float row = -point.y() * (image_size - 1.0) / range + image_center;
-      //float col = point.x() * (image_size - 1.0) / range + image_center;
-
+    if (std::abs(azimuth) <= fov/2 && std::abs(elevation) <= fov/2){
+  
       //https://towardsdatascience.com/spherical-projection-for-point-clouds-56a2fc258e6c
-      int row_dim = 100;
-      int col_dim = 100;
+      int row_dim = 64;
+      int col_dim = 64;
       float pitch = std::asin(point.z()/distance);
       float yaw = std::atan2(point.y(), point.x());
-      float u = row_dim * (1-(pitch + fov)/(2*fov));
-      float v = col_dim*(0.5*((yaw/M_PI)+1));
+      float u = row_dim * (1-(pitch + fov/2)/(fov));
+      float v = col_dim*(0.5*((yaw/(fov/2))+1));
 
       // Round the row and column indices to the nearest integer values
       int image_row = static_cast<int>(std::round(u));
       int image_col = static_cast<int>(std::round(v));  
       // Map the height of the point to a grayscale value
-      int value = (distance / range) * 255;
+      int value = (distance /range) * 255;
 
       // Store the grayscale value in the image
       image_row = std::max(0, std::min(image_size - 1, image_row));
