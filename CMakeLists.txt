@@ -36,7 +36,7 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_executable(cloud_to_image_node cloud_to_image.cpp)
+add_executable(cloud_to_image_node cloud_to_image_node.cpp)
 
 target_link_libraries(cloud_to_image_node
   ${catkin_LIBRARIES}
