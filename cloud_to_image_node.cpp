@@ -18,7 +18,7 @@ ros::Publisher pub;
 cv::Mat image;
 
 // Image size
-int image_size = 64;
+int image_size = 50;//64;
 
 // FOV and range
 float fov = 2.09; //rad, 120 deg;
@@ -61,8 +61,8 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     if (std::abs(azimuth) <= fov/2 && std::abs(elevation) <= fov/2){
   
       //https://towardsdatascience.com/spherical-projection-for-point-clouds-56a2fc258e6c
-      int row_dim = 64;
-      int col_dim = 64;
+      int row_dim = 50;//32;
+      int col_dim = 50;//64;
       float pitch = std::asin(point.z()/distance);
       float yaw = std::atan2(point.y(), point.x());
       float u = row_dim * (1-(pitch + fov/2)/(fov));
@@ -78,7 +78,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       image_row = std::max(0, std::min(image_size - 1, image_row));
       image_col = std::max(0, std::min(image_size - 1, image_col));
     
-      image.at<unsigned char>(image_row, image_col) = std::max(0, std::min(255, value));
+      image.at<unsigned char>(image_row, -image_col) = std::max(0, std::min(255, value));
     }
   }
 
@@ -96,8 +96,12 @@ int main (int argc, char** argv)
   ros::NodeHandle nh;
 
   // Subscribe to the point cloud topic
-  //ros::Subscriber sub = nh.subscribe ("mmWaveDataHdl/RScan", 1, cloud_cb);
-  ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
+  //deep colliion predictor
+  //ros::Subscriber sub = nh.subscribe ("/delta/velodyne_points", 1, cloud_cb);
+  //test
+  //ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
+  //calibrate
+  ros::Subscriber sub = nh.subscribe ("/point_cloud", 1, cloud_cb);
 
   // Advertise the image topic
   pub = nh.advertise<sensor_msgs::Image> ("output", 1);
