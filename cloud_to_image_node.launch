@@ -1,8 +1,12 @@
 <launch>
-<node type="rviz" name="rviz" pkg="rviz" />
+  <node type="rviz" name="rviz" pkg="rviz" />
 
-<node pkg="cloud_to_image_node" type="cloud_to_image_node" name="cloud_to_image_node"/>
+  <node pkg="cloud_to_image_node" type="cloud_to_image_node" name="cloud_to_image_node">
+    <!-- <remap from="/point_cloud" to="/ti_mmwave/radar_scan_pcl" /> -->
+  </node>
 
-<node pkg="rosbag" type="play" name="player" output="screen" args="--clock -l -q /home/taylorvd/catkin_ws/src/cloud_to_image_node/mk_elektro_basement_thin_3_radar_points.bag"/>
-<node pkg="tf2_ros" type="static_transform_publisher" name="tf1" args="0.0 0.0 0.0 0.0 0 0 map ti_mmwave" />
+  <node pkg="rosbag" type="play" name="player" output="screen" args="--clock -l -q /home/taylorvd/catkin_ws/src/cloud_to_image_node/mk_elektro_basement_thin_3_radar_points.bag"/>
+  <!--/home/taylorvd/catkin_ws/src/cloud_to_image_node/mk_ntnu_forest_21022023_radar_points.bag"/> -->
+  
+  <node pkg="tf2_ros" type="static_transform_publisher" name="tf2" args="0.0 0.0 0.0 0.0 0 0 map ti_mmwave" />
 </launch>

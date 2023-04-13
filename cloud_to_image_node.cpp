@@ -18,15 +18,18 @@ ros::Publisher pub;
 cv::Mat image;
 
 // Image size
-int image_size = 50;//64;
+int image_size = 3;
 
 // FOV and range
 float fov = 2.09; //rad, 120 deg;
 float range = 10;
 
+
+
 void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
   //creates new clean image every time
+  //printf("OpenCV: %s", cv::getBuildInformation().c_str());
   image = cv::Mat();
   image = cv::Mat::zeros(image_size, image_size, CV_8UC1);
 
@@ -61,24 +64,30 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     if (std::abs(azimuth) <= fov/2 && std::abs(elevation) <= fov/2){
   
       //https://towardsdatascience.com/spherical-projection-for-point-clouds-56a2fc258e6c
-      int row_dim = 50;//32;
-      int col_dim = 50;//64;
+      int row_dim = 3;
+      int col_dim = 3;
       float pitch = std::asin(point.z()/distance);
       float yaw = std::atan2(point.y(), point.x());
       float u = row_dim * (1-(pitch + fov/2)/(fov));
       float v = col_dim*(0.5*((yaw/(fov/2))+1));
+      printf("yaw %f, u %f, v %f\n", yaw, u, v);
 
       // Round the row and column indices to the nearest integer values
       int image_row = static_cast<int>(std::round(u));
       int image_col = static_cast<int>(std::round(v));  
+      printf("row %i, col %i\n", image_row, image_col);
       // Map the height of the point to a grayscale value
-      int value = (distance /range) * 255;
+      int value =   (1 - (distance /range)) * 255;
 
       // Store the grayscale value in the image
       image_row = std::max(0, std::min(image_size - 1, image_row));
       image_col = std::max(0, std::min(image_size - 1, image_col));
-    
-      image.at<unsigned char>(image_row, -image_col) = std::max(0, std::min(255, value));
+      printf("%i \n",  value);
+      printf("%i \n", std::max(0, std::min(255, value)));
+ 
+
+      image.at<unsigned char>(image_row, col_dim - image_col) = std::max(0, std::min(255, value));
+      
     }
   }
 
@@ -94,14 +103,15 @@ int main (int argc, char** argv)
   // Initialize ROS
   ros::init (argc, argv, "cloud_to_image_node");
   ros::NodeHandle nh;
+  printf("starting node\n");
 
   // Subscribe to the point cloud topic
   //deep colliion predictor
   //ros::Subscriber sub = nh.subscribe ("/delta/velodyne_points", 1, cloud_cb);
   //test
-  //ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
+  ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
   //calibrate
-  ros::Subscriber sub = nh.subscribe ("/point_cloud", 1, cloud_cb);
+  //ros::Subscriber sub = nh.subscribe ("/point_cloud", 1, cloud_cb);
 
   // Advertise the image topic
   pub = nh.advertise<sensor_msgs::Image> ("output", 1);
