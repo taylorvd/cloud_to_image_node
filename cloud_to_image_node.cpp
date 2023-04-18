@@ -13,12 +13,14 @@
 #include <pcl/filters/project_inliers.h>
 #include <pcl/common/angles.h>
 #include <math.h>
+#include <cstdlib>
+#include <ctime>
 
 ros::Publisher pub;
 cv::Mat image;
 
 // Image size
-int image_size = 3;
+int image_size = 8;
 
 // FOV and range
 float fov = 2.09; //rad, 120 deg;
@@ -28,6 +30,7 @@ float range = 10;
 
 void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
+
   //creates new clean image every time
   //printf("OpenCV: %s", cv::getBuildInformation().c_str());
   image = cv::Mat();
@@ -44,6 +47,8 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   Eigen::Vector3f z_vector(0, 0, 1);
 
   for (int i = 0; i < cloud->points.size(); i++) {
+     int random_number = std::rand() % 100;
+
     // Get the xyz coordinates of the point
     Eigen::Vector3f point(cloud->points[i].x, cloud->points[i].y, cloud->points[i].z);
 
@@ -51,7 +56,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     float distance = point.norm();
 
     // Check if the point is within range
-    if (distance > range) {
+    if (distance > range || random_number <50) {
       continue;
     }
 
@@ -64,30 +69,32 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     if (std::abs(azimuth) <= fov/2 && std::abs(elevation) <= fov/2){
   
       //https://towardsdatascience.com/spherical-projection-for-point-clouds-56a2fc258e6c
-      int row_dim = 3;
-      int col_dim = 3;
+      int row_dim = 8;
+      int col_dim = 8;
       float pitch = std::asin(point.z()/distance);
       float yaw = std::atan2(point.y(), point.x());
       float u = row_dim * (1-(pitch + fov/2)/(fov));
       float v = col_dim*(0.5*((yaw/(fov/2))+1));
-      printf("yaw %f, u %f, v %f\n", yaw, u, v);
+      //printf("yaw %f, u %f, v %f\n", yaw, u, v);
 
       // Round the row and column indices to the nearest integer values
       int image_row = static_cast<int>(std::round(u));
       int image_col = static_cast<int>(std::round(v));  
-      printf("row %i, col %i\n", image_row, image_col);
+      //printf("row %i, col %i\n", image_row, image_col);
       // Map the height of the point to a grayscale value
       int value =   (1 - (distance /range)) * 255;
 
       // Store the grayscale value in the image
-      image_row = std::max(0, std::min(image_size - 1, image_row));
-      image_col = std::max(0, std::min(image_size - 1, image_col));
-      printf("%i \n",  value);
-      printf("%i \n", std::max(0, std::min(255, value)));
+      image_row = std::max(0, std::min(image_size , image_row));
+      image_col = std::max(0, std::min(image_size , image_col));
+      //printf("%i \n",  value);
+      //printf("%i \n", std::max(0, std::min(255, value)));
  
+      if (image.at<unsigned char>(image_row, col_dim - image_col) < value)
+      {
 
-      image.at<unsigned char>(image_row, col_dim - image_col) = std::max(0, std::min(255, value));
-      
+        image.at<unsigned char>(image_row, col_dim - image_col) = std::max(0, std::min(255, value));
+      }
     }
   }
 
@@ -107,15 +114,23 @@ int main (int argc, char** argv)
 
   // Subscribe to the point cloud topic
   //deep colliion predictor
-  //ros::Subscriber sub = nh.subscribe ("/delta/velodyne_points", 1, cloud_cb);
+  ros::Subscriber sub = nh.subscribe ("/delta/velodyne_points", 1, cloud_cb);
   //test
-  ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
+  //ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
   //calibrate
   //ros::Subscriber sub = nh.subscribe ("/point_cloud", 1, cloud_cb);
-
+  //cavern
+  //ros::Subscriber sub = nh.subscribe ("/radar/left/cloud", 1, cloud_cb);
+  
   // Advertise the image topic
   pub = nh.advertise<sensor_msgs::Image> ("output", 1);
 
   // Spin
   ros::spin ();
+  // ros::Rate rate(10); // 10 Hz
+  // while (ros::ok())
+  // {
+  //   ros::spinOnce();
+  //   rate.sleep();
+  // }
 }
