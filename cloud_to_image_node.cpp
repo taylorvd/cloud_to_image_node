@@ -20,7 +20,7 @@ ros::Publisher pub;
 cv::Mat image;
 
 // Image size
-int image_size = 8;
+int image_size = 16;
 
 // FOV and range
 float fov = 2.09; //rad, 120 deg;
@@ -56,7 +56,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     float distance = point.norm();
 
     // Check if the point is within range
-    if (distance > range || random_number <50) {
+    if (distance > range || random_number <70) {
       continue;
     }
 
@@ -69,8 +69,8 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     if (std::abs(azimuth) <= fov/2 && std::abs(elevation) <= fov/2){
   
       //https://towardsdatascience.com/spherical-projection-for-point-clouds-56a2fc258e6c
-      int row_dim = 8;
-      int col_dim = 8;
+      int row_dim = 16;
+      int col_dim = 16;
       float pitch = std::asin(point.z()/distance);
       float yaw = std::atan2(point.y(), point.x());
       float u = row_dim * (1-(pitch + fov/2)/(fov));
