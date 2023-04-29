@@ -20,7 +20,7 @@ ros::Publisher pub;
 cv::Mat image;
 
 // Image size
-int image_size = 16;
+int image_size = 8;
 
 // FOV and range
 float fov = 2.09; //rad, 120 deg;
@@ -35,7 +35,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   //printf("OpenCV: %s", cv::getBuildInformation().c_str());
   image = cv::Mat();
   image = cv::Mat::zeros(image_size, image_size, CV_8UC1);
-
+  
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
   //changed to pointer
   pcl::fromROSMsg (*input, *cloud);
@@ -46,6 +46,14 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   // Create a unit z-vector pointing straight up
   Eigen::Vector3f z_vector(0, 0, 1);
 
+
+  static int num_time_steps = 0;
+  static int total_num_points = 0;
+  int num_points = 0;
+
+
+
+
   for (int i = 0; i < cloud->points.size(); i++) {
      int random_number = std::rand() % 100;
 
@@ -54,9 +62,9 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
     // Calculate the distance from the origin to the point
     float distance = point.norm();
-
+    
     // Check if the point is within range
-    if (distance > range || random_number <70) {
+    if (distance > range || random_number <75) {
       continue;
     }
 
@@ -67,10 +75,11 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     //printf("azimuth %f elevation %f", azimuth, elevation);
     // Check if the point is within the FOV
     if (std::abs(azimuth) <= fov/2 && std::abs(elevation) <= fov/2){
-  
+      num_points++;
+
       //https://towardsdatascience.com/spherical-projection-for-point-clouds-56a2fc258e6c
-      int row_dim = 16;
-      int col_dim = 16;
+      int row_dim = image_size;
+      int col_dim = image_size;
       float pitch = std::asin(point.z()/distance);
       float yaw = std::atan2(point.y(), point.x());
       float u = row_dim * (1-(pitch + fov/2)/(fov));
@@ -89,7 +98,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       image_col = std::max(0, std::min(image_size , image_col));
       //printf("%i \n",  value);
       //printf("%i \n", std::max(0, std::min(255, value)));
- 
+     
       if (image.at<unsigned char>(image_row, col_dim - image_col) < value)
       {
 
@@ -103,6 +112,17 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
   // Publish the image
   pub.publish(image_msg);
+
+
+  total_num_points += num_points;
+  num_time_steps++;
+
+  // Compute the running average
+  double avg_points = static_cast<double>(total_num_points) / num_time_steps;
+
+  // Print the running average
+  //ROS_INFO_STREAM("Running average number of points per time step: " << avg_points);
+
 }
 
 int main (int argc, char** argv)
@@ -113,24 +133,25 @@ int main (int argc, char** argv)
   printf("starting node\n");
 
   // Subscribe to the point cloud topic
+
   //deep colliion predictor
+  //ADD POINT SPARSITY
   ros::Subscriber sub = nh.subscribe ("/delta/velodyne_points", 1, cloud_cb);
+  
   //test
-  //ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
+  //REMOVE POINT SPARSITY
+    //ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
+  
+  
   //calibrate
   //ros::Subscriber sub = nh.subscribe ("/point_cloud", 1, cloud_cb);
   //cavern
-  //ros::Subscriber sub = nh.subscribe ("/radar/left/cloud", 1, cloud_cb);
+  // ros::Subscriber sub = nh.subscribe ("/radar/left/cloud", 1, cloud_cb);
   
   // Advertise the image topic
   pub = nh.advertise<sensor_msgs::Image> ("output", 1);
 
   // Spin
   ros::spin ();
-  // ros::Rate rate(10); // 10 Hz
-  // while (ros::ok())
-  // {
-  //   ros::spinOnce();
-  //   rate.sleep();
-  // }
+ 
 }
