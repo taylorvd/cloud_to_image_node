@@ -17,7 +17,8 @@
 #include <ctime>
 
 ros::Publisher pub;
-cv::Mat image;
+cv::Mat depth_image;
+cv::Mat snr_image;
 
 // Image size
 int image_size = 8;
@@ -33,10 +34,13 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
   //creates new clean image every time
   //printf("OpenCV: %s", cv::getBuildInformation().c_str());
-  image = cv::Mat();
-  image = cv::Mat::zeros(image_size, image_size, CV_8UC1);
+  depth_image = cv::Mat();
+  depth_image = cv::Mat::zeros(image_size, image_size, CV_8UC1);
+
+  snr_image = cv::Mat();
+  snr_image = cv::Mat::zeros(image_size, image_size, CV_8UC1);
   
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
   //changed to pointer
   pcl::fromROSMsg (*input, *cloud);
 
@@ -51,22 +55,21 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   static int total_num_points = 0;
   int num_points = 0;
 
-
-
-
   for (int i = 0; i < cloud->points.size(); i++) {
-     int random_number = std::rand() % 100;
+    int random_number = std::rand() % 100;
 
     // Get the xyz coordinates of the point
     Eigen::Vector3f point(cloud->points[i].x, cloud->points[i].y, cloud->points[i].z);
 
     // Calculate the distance from the origin to the point
     float distance = point.norm();
+
+    float snr = cloud->points[i].intensity;
     
     // Check if the point is within range
-    if (distance > range || random_number <75) {
+    if (distance > range){ // || random_number <75) {
       continue;
-    }
+  }
 
     // Calculate the angle between the point and the z-axis using the dot product
     //float cos_angle = point.dot(z_vector) / distance;
@@ -84,31 +87,31 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       float yaw = std::atan2(point.y(), point.x());
       float u = row_dim * (1-(pitch + fov/2)/(fov));
       float v = col_dim*(0.5*((yaw/(fov/2))+1));
-      //printf("yaw %f, u %f, v %f\n", yaw, u, v);
 
       // Round the row and column indices to the nearest integer values
       int image_row = static_cast<int>(std::round(u));
       int image_col = static_cast<int>(std::round(v));  
-      //printf("row %i, col %i\n", image_row, image_col);
+
       // Map the height of the point to a grayscale value
       int value =   (1 - (distance /range)) * 255;
 
       // Store the grayscale value in the image
       image_row = std::max(0, std::min(image_size , image_row));
       image_col = std::max(0, std::min(image_size , image_col));
-      //printf("%i \n",  value);
-      //printf("%i \n", std::max(0, std::min(255, value)));
-     
-      if (image.at<unsigned char>(image_row, col_dim - image_col) < value)
-      {
 
-        image.at<unsigned char>(image_row, col_dim - image_col) = std::max(0, std::min(255, value));
+     
+      //if (depth_image.at<unsigned char>(image_row, col_dim - image_col) < value)
+      if (snr_image.at<unsigned char>(image_row, col_dim - image_col) < snr)
+
+      {
+        depth_image.at<unsigned char>(image_row, col_dim - image_col) = std::max(0, std::min(255, value));
+        snr_image.at<unsigned char>(image_row, col_dim - image_col) = snr;
       }
     }
   }
 
   // Convert the image to a ROS message
-  sensor_msgs::ImagePtr image_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
+  sensor_msgs::ImagePtr image_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", depth_image).toImageMsg();
 
   // Publish the image
   pub.publish(image_msg);
@@ -136,11 +139,11 @@ int main (int argc, char** argv)
 
   //deep colliion predictor
   //ADD POINT SPARSITY
-  ros::Subscriber sub = nh.subscribe ("/delta/velodyne_points", 1, cloud_cb);
+    //ros::Subscriber sub = nh.subscribe ("/delta/velodyne_points", 1, cloud_cb);
   
   //test
   //REMOVE POINT SPARSITY
-    //ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
+  ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
   
   
   //calibrate
@@ -150,6 +153,7 @@ int main (int argc, char** argv)
   
   // Advertise the image topic
   pub = nh.advertise<sensor_msgs::Image> ("output", 1);
+
 
   // Spin
   ros::spin ();
