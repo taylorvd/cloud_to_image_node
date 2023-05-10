@@ -65,9 +65,10 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     float distance = point.norm();
 
     float snr = cloud->points[i].intensity;
-    
+
     // Check if the point is within range
-    if (distance > range){ // || random_number <75) {
+    if (distance > range || random_number <75) {
+ 
       continue;
   }
 
@@ -100,12 +101,12 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       image_col = std::max(0, std::min(image_size , image_col));
 
      
-      //if (depth_image.at<unsigned char>(image_row, col_dim - image_col) < value)
-      if (snr_image.at<unsigned char>(image_row, col_dim - image_col) < snr)
+      if (depth_image.at<unsigned char>(image_row, col_dim - image_col) < value)
+      // if (snr_image.at<unsigned char>(image_row, col_dim - image_col) < snr)
 
       {
         depth_image.at<unsigned char>(image_row, col_dim - image_col) = std::max(0, std::min(255, value));
-        snr_image.at<unsigned char>(image_row, col_dim - image_col) = snr;
+        //snr_image.at<unsigned char>(image_row, col_dim - image_col) = snr;
       }
     }
   }
@@ -124,7 +125,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   double avg_points = static_cast<double>(total_num_points) / num_time_steps;
 
   // Print the running average
-  //ROS_INFO_STREAM("Running average number of points per time step: " << avg_points);
+  // ROS_INFO_STREAM("Running average number of points per time step: " << avg_points);
 
 }
 
@@ -138,12 +139,15 @@ int main (int argc, char** argv)
   // Subscribe to the point cloud topic
 
   //deep colliion predictor
-  //ADD POINT SPARSITY
-    //ros::Subscriber sub = nh.subscribe ("/delta/velodyne_points", 1, cloud_cb);
+  //ADD POINT SPARSITY, REMOVE SNR
+  ros::Subscriber sub = nh.subscribe ("/delta/velodyne_points", 1, cloud_cb);
   
   //test
-  //REMOVE POINT SPARSITY
-  ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
+  //REMOVE POINT SPARSITY, ADD SNR
+  // ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
+
+  //combined clouds
+  //ros::Subscriber sub = nh.subscribe ("output_combined", 1, cloud_cb);
   
   
   //calibrate
