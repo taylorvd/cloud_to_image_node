@@ -67,7 +67,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     float snr = cloud->points[i].intensity;
 
     // Check if the point is within range
-    if (distance > range || random_number <75) {
+    if (distance > range || random_number <93) {
  
       continue;
   }
@@ -101,7 +101,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       image_col = std::max(0, std::min(image_size , image_col));
 
      
-      if (depth_image.at<unsigned char>(image_row, col_dim - image_col) < value)
+      if (depth_image.at<unsigned char>(image_row, col_dim - image_col) < value && random_number > 50)
       // if (snr_image.at<unsigned char>(image_row, col_dim - image_col) < snr)
 
       {
