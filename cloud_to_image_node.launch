@@ -1,12 +1,18 @@
 <launch>
-  <node type="rviz" name="rviz" pkg="rviz" />
+  <!-- <node type="rviz" name="rviz" pkg="rviz" /> -->
 
-  <node pkg="cloud_to_image_node" type="cloud_to_image_node" name="cloud_to_image_node">
-    <!-- <remap from="/point_cloud" to="/ti_mmwave/radar_scan_pcl" /> -->
-  </node>
+  <!-- <node pkg="cloud_to_image_node" type="cloud_to_image_node" name="cloud_to_image_node"/> -->
 
-  <node pkg="rosbag" type="play" name="player" output="screen" args="--clock -l -q /home/taylorvd/catkin_ws/src/cloud_to_image_node/mk_elektro_basement_thin_3_radar_points.bag"/>
-  <!--/home/taylorvd/catkin_ws/src/cloud_to_image_node/mk_ntnu_forest_21022023_radar_points.bag"/> -->
-  
-  <node pkg="tf2_ros" type="static_transform_publisher" name="tf2" args="0.0 0.0 0.0 0.0 0 0 map ti_mmwave" />
+   <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="tf2" args="0.0 0.0 0.0 0.0 0 0 map state" /> -->
+
+  <!-- Start the rosbag play node -->
+  <node name="rosbag_play" pkg="rosbag" type="play" output="screen" args="--clock /home/taylorlv/catkin_ws/src/cloud_to_image_node/mk_materialteknisk.bag" />
+
+  <!-- Start the rosbag record node -->
+  <node name="rosbag_record" pkg="rosbag" type="record" output="screen" args="-O final_traj.bag /trajectory" />
+
+  <!-- Your other launch configurations and nodes go here -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="tf2" args="0.0 0.0 0.0 0.0 0 0 map state" />
+
+
 </launch>

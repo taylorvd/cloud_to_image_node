@@ -67,7 +67,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     float snr = cloud->points[i].intensity;
 
     // Check if the point is within range
-    if (distance > range || random_number <93) {
+    if (distance > range){ 
  
       continue;
   }
@@ -94,19 +94,20 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
       int image_col = static_cast<int>(std::round(v));  
 
       // Map the height of the point to a grayscale value
-      int value =   (1 - (distance /range)) * 255;
-
+      int value =  ( (1 - (distance /range)) * 255);
+      
       // Store the grayscale value in the image
       image_row = std::max(0, std::min(image_size , image_row));
       image_col = std::max(0, std::min(image_size , image_col));
 
-     
-      if (depth_image.at<unsigned char>(image_row, col_dim - image_col) < value && random_number > 50)
-      // if (snr_image.at<unsigned char>(image_row, col_dim - image_col) < snr)
+      
+      // if (depth_image.at<unsigned char>(image_row, col_dim - image_col) < value  && random_number > 97)
+        
+      if (snr_image.at<unsigned char>(image_row, col_dim - image_col) < snr)
 
       {
         depth_image.at<unsigned char>(image_row, col_dim - image_col) = std::max(0, std::min(255, value));
-        //snr_image.at<unsigned char>(image_row, col_dim - image_col) = snr;
+        snr_image.at<unsigned char>(image_row, col_dim - image_col) = snr;
       }
     }
   }
@@ -140,11 +141,11 @@ int main (int argc, char** argv)
 
   //deep colliion predictor
   //ADD POINT SPARSITY, REMOVE SNR
-  ros::Subscriber sub = nh.subscribe ("/delta/velodyne_points", 1, cloud_cb);
+  // ros::Subscriber sub = nh.subscribe ("/delta/velodyne_points", 1, cloud_cb);
   
   //test
   //REMOVE POINT SPARSITY, ADD SNR
-  // ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
+   ros::Subscriber sub = nh.subscribe ("/ti_mmwave/radar_scan_pcl", 1, cloud_cb);
 
   //combined clouds
   //ros::Subscriber sub = nh.subscribe ("output_combined", 1, cloud_cb);
